@@ -194,7 +194,7 @@
   // ── Config ──────────────────────────────────────────────
   // Detecta se está rodando local ou em produção
   const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:5000/api'
+    ? '/api'
     : '/api';  // Em produção usa caminho relativo
 
   let deleteId = null;
