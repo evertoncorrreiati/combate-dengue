@@ -396,7 +396,8 @@
   let toastTimer;
   function toast(msg, error=false) {
     const el = document.getElementById('toast');
-    el.textContent = msg;
+    el.textContent = msg;git add .
+
     el.className = error ? 'show error' : 'show';
     clearTimeout(toastTimer);
     toastTimer = setTimeout(()=>{el.className='';},3500);
