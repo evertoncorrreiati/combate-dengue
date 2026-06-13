@@ -153,6 +153,7 @@ def stats():
     return jsonify({'total': total, 'pendentes': pendentes,
                     'confirmados': confirmados, 'resolvidos': resolvidos})
 
+init_db()
 if __name__ == '__main__':
     init_db()
     port = int(os.environ.get('PORT', 5000))
