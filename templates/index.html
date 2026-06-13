@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Combate à Dengue</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    :root {
+      --green-dark:#1a5c2a; --green-mid:#2e8b45; --orange:#e8631a;
+      --red:#c0392b; --bg:#f0f7f1; --card:#ffffff; --text:#1a2e1d;
+      --muted:#5a7060; --border:#c8dfc9; --shadow:0 2px 12px rgba(30,90,40,.10);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+    header{background:linear-gradient(135deg,var(--green-dark),var(--green-mid));color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+    .logo{display:flex;align-items:center;gap:10px;font-size:1.2rem;font-weight:700}
+    nav{display:flex;gap:6px}
+    nav button{background:transparent;border:2px solid rgba(255,255,255,.35);color:#fff;padding:7px 16px;border-radius:8px;cursor:pointer;font-size:.88rem;font-weight:600;transition:background .2s,border-color .2s}
+    nav button:hover,nav button.active{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.8)}
+    .screen{display:none;padding:24px 20px;max-width:900px;margin:0 auto}
+    .screen.active{display:block}
+    .section-title{font-size:1.4rem;font-weight:800;color:var(--green-dark);margin-bottom:4px}
+    .section-sub{color:var(--muted);font-size:.9rem;margin-bottom:24px}
+    /* CADASTRO */
+    .card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:24px;border:1px solid var(--border)}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .form-group{display:flex;flex-direction:column;gap:5px}
+    .form-group.full{grid-column:1/-1}
+    label{font-size:.78rem;font-weight:700;color:var(--green-dark);text-transform:uppercase;letter-spacing:.5px}
+    input,select,textarea{border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:.93rem;color:var(--text);background:#fafffe;transition:border-color .2s;font-family:inherit}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green-mid);box-shadow:0 0 0 3px rgba(46,139,69,.12)}
+    textarea{resize:vertical;min-height:76px}
+    .cep-row{display:flex;gap:8px}
+    .cep-row input{flex:1}
+    .btn-cep{background:var(--green-mid);color:#fff;border:none;border-radius:8px;padding:9px 14px;cursor:pointer;font-weight:700;font-size:.85rem;white-space:nowrap}
+    .btn-cep:hover{background:var(--green-dark)}
+    .btn-primary{background:linear-gradient(135deg,var(--green-mid),var(--green-dark));color:#fff;border:none;border-radius:10px;padding:12px 26px;cursor:pointer;font-size:.97rem;font-weight:700;margin-top:20px;display:inline-flex;align-items:center;gap:8px;transition:opacity .2s,transform .1s}
+    .btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+    .tipos-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+    .tipo-tag{border:2px solid var(--border);border-radius:50px;padding:5px 13px;font-size:.83rem;cursor:pointer;background:#f5fbf5;color:var(--muted);user-select:none;font-weight:600;transition:all .2s}
+    .tipo-tag.selected{background:var(--green-mid);border-color:var(--green-mid);color:#fff}
+    /* DASHBOARD */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+    .stat-card{background:var(--card);border-radius:12px;padding:18px;text-align:center;border:1px solid var(--border);box-shadow:var(--shadow)}
+    .stat-num{font-size:2rem;font-weight:900;line-height:1}
+    .stat-label{font-size:.72rem;color:var(--muted);margin-top:4px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+    .filter-row{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+    .filter-row input,.filter-row select{padding:8px 12px;font-size:.87rem}
+    .filter-row input{flex:1;min-width:160px}
+    /* FOCO CARD */
+    .foco-card{background:var(--card);border-radius:12px;border:1px solid var(--border);border-left:4px solid var(--border);box-shadow:var(--shadow);padding:18px;margin-bottom:14px;transition:box-shadow .2s}
+    .foco-card:hover{box-shadow:0 4px 20px rgba(30,90,40,.15)}
+    .foco-card.pendente{border-left-color:var(--orange)}
+    .foco-card.confirmado{border-left-color:var(--red)}
+    .foco-card.resolvido{border-left-color:var(--green-mid);opacity:.85}
+    .foco-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+    .foco-addr{font-size:.95rem;font-weight:700;color:var(--text)}
+    .foco-sub{font-size:.8rem;color:var(--muted);margin-top:2px}
+    .badge{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:50px;font-size:.75rem;font-weight:700;white-space:nowrap}
+    .badge-pendente{background:#fff3cd;color:#856404}
+    .badge-confirmado{background:#ffe0cc;color:#7a3200}
+    .badge-resolvido{background:#d4edda;color:#155724}
+    .foco-info{display:flex;gap:14px;margin-bottom:12px;font-size:.8rem;color:var(--muted);flex-wrap:wrap}
+    .progresso{display:flex;align-items:center;gap:4px;margin-bottom:12px;flex-wrap:wrap}
+    .step{padding:3px 10px;border-radius:50px;font-size:.72rem;font-weight:600;background:#f0f7f1;color:var(--muted)}
+    .step.ativo{background:var(--green-dark);color:#fff}
+    .step.feito{background:#d4edda;color:#155724}
+    .step-seta{color:var(--muted);font-size:.8rem}
+    .foco-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .btn-action{padding:8px 16px;border-radius:8px;border:none;font-size:.83rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s}
+    .btn-action:hover{opacity:.85;transform:translateY(-1px)}
+    .btn-confirmar{background:var(--green-mid);color:#fff}
+    .btn-resolver{background:var(--green-dark);color:#fff}
+    .btn-excluir{background:transparent;border:1.5px solid #f8d7da;color:#721c24;padding:7px 13px;border-radius:8px;font-size:.83rem;font-weight:700;cursor:pointer}
+    .foco-dica{background:#f5fbf5;border-radius:6px;padding:7px 10px;font-size:.75rem;color:var(--muted);margin-top:8px;display:flex;align-items:center;gap:5px}
+    .empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+    .empty-state div{font-size:2.5rem;margin-bottom:12px}
+    /* MAPA */
+    #map{height:480px;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow);z-index:1}
+    .map-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px}
+    .legend-item{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);font-weight:600}
+    .legend-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0}
+    /* MODAL */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;align-items:center;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal{background:var(--card);border-radius:16px;padding:30px;max-width:380px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.25);text-align:center}
+    .modal h3{font-size:1.1rem;color:var(--red);margin-bottom:8px}
+    .modal p{color:var(--muted);font-size:.9rem;margin-bottom:22px;line-height:1.5}
+    .modal-actions{display:flex;gap:10px;justify-content:center}
+    .btn-cancel{background:var(--bg);border:1.5px solid var(--border);color:var(--text);border-radius:8px;padding:9px 20px;cursor:pointer;font-weight:700;font-size:.88rem}
+    .btn-danger{background:var(--red);color:#fff;border:none;border-radius:8px;padding:9px 20px;cursor:pointer;font-weight:700;font-size:.88rem}
+    /* TOAST */
+    #toast{position:fixed;bottom:24px;right:24px;background:var(--green-dark);color:#fff;padding:13px 20px;border-radius:10px;font-weight:600;font-size:.9rem;z-index:9999;opacity:0;transform:translateY(10px);transition:opacity .3s,transform .3s;pointer-events:none;max-width:300px}
+    #toast.show{opacity:1;transform:translateY(0)}
+    #toast.error{background:var(--red)}
+    @media(max-width:600px){.form-grid{grid-template-columns:1fr}.stats-row{grid-template-columns:1fr 1fr}nav button{padding:6px 8px;font-size:.78rem}}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🦟 Combate à Dengue</div>
+  <nav>
+    <button class="active" onclick="goTo('cadastro',this)">📋 Cadastro</button>
+    <button onclick="goTo('dashboard',this)">📊 Dashboard</button>
+    <button onclick="goTo('mapa',this)">🗺️ Mapa</button>
+  </nav>
+</header>
+
+<!-- CADASTRO -->
+<section id="screen-cadastro" class="screen active">
+  <div class="section-title">📋 Registrar Foco</div>
+  <p class="section-sub">Informe a localização e o tipo do possível foco do mosquito da dengue.</p>
+  <div class="card">
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>CEP</label>
+        <div class="cep-row">
+          <input type="text" id="cep" placeholder="00000-000" maxlength="9" oninput="maskCep(this)" />
+          <button class="btn-cep" onclick="buscarCep()">🔍 Buscar</button>
+        </div>
+      </div>
+      <div class="form-group full"><label>Logradouro</label><input type="text" id="logradouro" placeholder="Rua, Avenida…" /></div>
+      <div class="form-group"><label>Número</label><input type="text" id="numero" placeholder="123" /></div>
+      <div class="form-group"><label>Complemento</label><input type="text" id="complemento" placeholder="Apto, Bloco…" /></div>
+      <div class="form-group"><label>Bairro</label><input type="text" id="bairro" placeholder="Bairro" /></div>
+      <div class="form-group"><label>Cidade</label><input type="text" id="cidade" placeholder="Cidade" /></div>
+      <div class="form-group"><label>UF</label><input type="text" id="uf" placeholder="SP" maxlength="2" /></div>
+      <div class="form-group"><label>Latitude</label><input type="number" id="lat" placeholder="-22.12345" step="any" /></div>
+      <div class="form-group"><label>Longitude</label><input type="number" id="lng" placeholder="-51.12345" step="any" /></div>
+      <div class="form-group full">
+        <label>Tipo de Foco</label>
+        <div class="tipos-grid">
+          <span class="tipo-tag" onclick="toggleTipo(this)">💧 Água parada</span>
+          <span class="tipo-tag" onclick="toggleTipo(this)">🏚️ Terreno abandonado</span>
+          <span class="tipo-tag" onclick="toggleTipo(this)">🗑️ Lixo acumulado</span>
+          <span class="tipo-tag" onclick="toggleTipo(this)">🏊 Piscina sem manutenção</span>
+          <span class="tipo-tag" onclick="toggleTipo(this)">🌿 Entulho com vegetação</span>
+          <span class="tipo-tag" onclick="toggleTipo(this)">🪣 Recipiente com água</span>
+          <span class="tipo-tag" onclick="toggleTipo(this)">🚗 Pneus velhos</span>
+          <span class="tipo-tag" onclick="toggleTipo(this)">Outro</span>
+        </div>
+      </div>
+      <div class="form-group full"><label>Descrição</label><textarea id="descricao" placeholder="Descreva a situação com mais detalhes…"></textarea></div>
+      <div class="form-group"><label>Seu Nome (opcional)</label><input type="text" id="nome" /></div>
+      <div class="form-group"><label>Telefone (opcional)</label><input type="tel" id="telefone" placeholder="(11) 99999-9999" /></div>
+    </div>
+    <button class="btn-primary" onclick="salvarRegistro()">✅ Registrar Foco</button>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<section id="screen-dashboard" class="screen">
+  <div class="section-title">📊 Focos Registrados</div>
+  <p class="section-sub">Acompanhe e gerencie cada ocorrência de ponta a ponta.</p>
+  <div class="stats-row" id="stats-row"></div>
+  <div class="filter-row">
+    <input type="text" id="filtro-texto" placeholder="🔍 Buscar por endereço ou tipo…" oninput="renderDashboard()" />
+    <select id="filtro-status" onchange="renderDashboard()">
+      <option value="">Todos os status</option>
+      <option value="Pendente">Novo</option>
+      <option value="Confirmado">Em andamento</option>
+      <option value="Resolvido">Resolvido</option>
+    </select>
+  </div>
+  <div id="focos-lista"></div>
+</section>
+
+<!-- MAPA -->
+<section id="screen-mapa" class="screen">
+  <div class="section-title">🗺️ Mapa de Focos</div>
+  <p class="section-sub">Visualize os focos no mapa via OpenStreetMap.</p>
+  <div id="map"></div>
+  <div class="map-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#e8631a"></div>Novo</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#c0392b"></div>Em andamento</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2e8b45"></div>Resolvido</div>
+  </div>
+</section>
+
+<!-- MODAL EXCLUSÃO -->
+<div class="modal-overlay" id="modal-del">
+  <div class="modal">
+    <h3>⚠️ Confirmar Exclusão</h3>
+    <p>Esta ação é irreversível. Deseja remover este registro de foco de dengue?</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-danger" onclick="confirmarDelete()">Sim, excluir</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000/api' : '/api';
+
+  let deleteId = null;
+  let map = null, mapLayers = [];
+
+  function goTo(screen, btn) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('screen-' + screen).classList.add('active');
+    btn.classList.add('active');
+    if (screen === 'dashboard') renderDashboard();
+    if (screen === 'mapa') initMapa();
+  }
+
+  function maskCep(el) {
+    let v = el.value.replace(/\D/g,'');
+    if (v.length > 5) v = v.slice(0,5)+'-'+v.slice(5,8);
+    el.value = v;
+  }
+
+  async function buscarCep() {
+    const cep = document.getElementById('cep').value.replace(/\D/g,'');
+    if (cep.length !== 8) { toast('CEP inválido!', true); return; }
+    try {
+      const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const d = await r.json();
+      if (d.erro) { toast('CEP não encontrado.', true); return; }
+      document.getElementById('logradouro').value = d.logradouro || '';
+      document.getElementById('bairro').value     = d.bairro     || '';
+      document.getElementById('cidade').value     = d.localidade || '';
+      document.getElementById('uf').value         = d.uf         || '';
+      geocodeEndereco(d.logradouro+', '+d.localidade+', '+d.uf);
+      toast('Endereço preenchido!');
+    } catch { toast('Erro ao buscar CEP.', true); }
+  }
+
+  async function geocodeEndereco(q) {
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`);
+      const d = await r.json();
+      if (d.length > 0) {
+        document.getElementById('lat').value = parseFloat(d[0].lat).toFixed(6);
+        document.getElementById('lng').value = parseFloat(d[0].lon).toFixed(6);
+      }
+    } catch {}
+  }
+
+  function toggleTipo(el) { el.classList.toggle('selected'); }
+  function getTipos() {
+    return Array.from(document.querySelectorAll('.tipo-tag.selected')).map(t => t.textContent.trim());
+  }
+
+  async function salvarRegistro() {
+    const tipos = getTipos();
+    const logradouro = document.getElementById('logradouro').value.trim();
+    const cidade     = document.getElementById('cidade').value.trim();
+    if (!logradouro || !cidade) { toast('Preencha logradouro e cidade.', true); return; }
+    if (tipos.length === 0) { toast('Selecione ao menos um tipo de foco.', true); return; }
+    const payload = {
+      cep: document.getElementById('cep').value.trim(), logradouro, cidade,
+      numero: document.getElementById('numero').value.trim(),
+      complemento: document.getElementById('complemento').value.trim(),
+      bairro: document.getElementById('bairro').value.trim(),
+      uf: document.getElementById('uf').value.trim(),
+      lat: parseFloat(document.getElementById('lat').value) || null,
+      lng: parseFloat(document.getElementById('lng').value) || null,
+      tipos, descricao: document.getElementById('descricao').value.trim(),
+      nome: document.getElementById('nome').value.trim(),
+      telefone: document.getElementById('telefone').value.trim(),
+    };
+    try {
+      const r = await fetch(`${API}/focos`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const d = await r.json();
+      if (!r.ok) { toast(d.erro || 'Erro ao salvar.', true); return; }
+      toast('✅ Foco registrado com sucesso!');
+      ['cep','logradouro','numero','complemento','bairro','cidade','uf','lat','lng','descricao','nome','telefone']
+        .forEach(id => document.getElementById(id).value = '');
+      document.querySelectorAll('.tipo-tag.selected').forEach(t => t.classList.remove('selected'));
+    } catch { toast('Sem conexão com a API.', true); }
+  }
+
+  function statusLabel(s) {
+    if (s === 'Pendente')   return '<span class="badge badge-pendente">🔴 Novo</span>';
+    if (s === 'Confirmado') return '<span class="badge badge-confirmado">🟠 Em andamento</span>';
+    return '<span class="badge badge-resolvido">✅ Resolvido</span>';
+  }
+
+  function progressoHTML(status) {
+    const s1 = status === 'Pendente' ? 'ativo' : 'feito';
+    const s2 = status === 'Confirmado' ? 'ativo' : status === 'Resolvido' ? 'feito' : '';
+    const s3 = status === 'Resolvido' ? 'feito ativo' : '';
+    return `<div class="progresso">
+      <span class="step ${s1}">1. Recebido</span>
+      <span class="step-seta">›</span>
+      <span class="step ${s2}">2. Confirmado</span>
+      <span class="step-seta">›</span>
+      <span class="step ${s3}">3. Resolvido</span>
+    </div>`;
+  }
+
+  function acoesHTML(foco) {
+    if (foco.status === 'Pendente') return `
+      <button class="btn-action btn-confirmar" onclick="atualizarStatus(${foco.id},'Confirmado')">✔ Confirmar ocorrência</button>
+      <button class="btn-excluir" onclick="abrirModal(${foco.id})">Excluir</button>
+      <div class="foco-dica">ℹ️ Clique em "Confirmar" após verificar o local no mapa</div>`;
+    if (foco.status === 'Confirmado') return `
+      <button class="btn-action btn-resolver" onclick="atualizarStatus(${foco.id},'Resolvido')">✔ Marcar como resolvido</button>
+      <button class="btn-excluir" onclick="abrirModal(${foco.id})">Excluir</button>
+      <div class="foco-dica">ℹ️ Clique em "Resolvido" após a equipe atender o local</div>`;
+    return `<button class="btn-excluir" onclick="abrirModal(${foco.id})">Excluir registro</button>`;
+  }
+
+  async function renderDashboard() {
+    const busca  = document.getElementById('filtro-texto').value;
+    const status = document.getElementById('filtro-status').value;
+    let focos = [];
+    try {
+      const r = await fetch(`${API}/focos?busca=${encodeURIComponent(busca)}&status=${encodeURIComponent(status)}`);
+      focos = await r.json();
+    } catch {
+      document.getElementById('focos-lista').innerHTML = '<p style="color:red;text-align:center">Sem conexão com a API.</p>';
+      return;
+    }
+    try {
+      const rs = await fetch(`${API}/stats`);
+      const s  = await rs.json();
+      document.getElementById('stats-row').innerHTML = `
+        <div class="stat-card"><div class="stat-num" style="color:var(--green-dark)">${s.total}</div><div class="stat-label">Total</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--orange)">${s.pendentes}</div><div class="stat-label">Novos</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--red)">${s.confirmados}</div><div class="stat-label">Em andamento</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--green-mid)">${s.resolvidos}</div><div class="stat-label">Resolvidos</div></div>`;
+    } catch {}
+
+    const lista = document.getElementById('focos-lista');
+    if (!focos.length) {
+      lista.innerHTML = `<div class="empty-state"><div>🦟</div><p>Nenhum foco encontrado.</p></div>`;
+      return;
+    }
+    lista.innerHTML = focos.map(f => {
+      const cls = f.status === 'Pendente' ? 'pendente' : f.status === 'Confirmado' ? 'confirmado' : 'resolvido';
+      const data = f.criado_em ? f.criado_em.split(' ')[0].split('-').reverse().join('/') : '—';
+      return `<div class="foco-card ${cls}">
+        <div class="foco-top">
+          <div>
+            <div class="foco-addr">${f.logradouro}${f.numero?', '+f.numero:''}</div>
+            <div class="foco-sub">${f.bairro?f.bairro+' — ':''}${f.cidade}/${f.uf}</div>
+          </div>
+          ${statusLabel(f.status)}
+        </div>
+        <div class="foco-info">
+          <span>${f.tipos.join(', ')}</span>
+          <span>📅 ${data}</span>
+          ${f.nome?'<span>👤 '+f.nome+'</span>':''}
+        </div>
+        ${progressoHTML(f.status)}
+        <div class="foco-actions">${acoesHTML(f)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  async function atualizarStatus(id, novoStatus) {
+    await fetch(`${API}/focos/${id}/status`, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:novoStatus})});
+    const msg = novoStatus === 'Confirmado' ? '✔ Ocorrência confirmada!' : '✅ Foco marcado como resolvido!';
+    toast(msg);
+    renderDashboard();
+  }
+
+  function abrirModal(id) { deleteId = id; document.getElementById('modal-del').classList.add('open'); }
+  function fecharModal()  { deleteId = null; document.getElementById('modal-del').classList.remove('open'); }
+  async function confirmarDelete() {
+    if (!deleteId) return;
+    await fetch(`${API}/focos/${deleteId}`, {method:'DELETE'});
+    fecharModal(); renderDashboard(); toast('Registro excluído.');
+  }
+
+  async function initMapa() {
+    if (!map) {
+      map = L.map('map').setView([-22.12, -51.39], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap contributors'}).addTo(map);
+    } else { mapLayers.forEach(l => map.removeLayer(l)); mapLayers = []; }
+    const cores = {Pendente:'#e8631a', Confirmado:'#c0392b', Resolvido:'#2e8b45'};
+    const labels = {Pendente:'Novo', Confirmado:'Em andamento', Resolvido:'Resolvido'};
+    let bounds = [];
+    try {
+      const r = await fetch(`${API}/focos`);
+      const focos = await r.json();
+      focos.forEach(f => {
+        if (!f.lat || !f.lng) return;
+        const m = L.circleMarker([f.lat,f.lng],{radius:10,fillColor:cores[f.status]||'#888',color:'#fff',weight:2,opacity:1,fillOpacity:.9}).addTo(map);
+        m.bindPopup(`<strong>${f.tipos.join(', ')}</strong><br/>${f.logradouro}${f.numero?', '+f.numero:''}<br/>${f.bairro} — ${f.cidade}/${f.uf}<br/>Status: <b>${labels[f.status]||f.status}</b>`);
+        mapLayers.push(m); bounds.push([f.lat,f.lng]);
+      });
+      if (bounds.length > 0) map.fitBounds(bounds,{padding:[30,30]});
+    } catch {}
+    setTimeout(()=>map.invalidateSize(),100);
+  }
+
+  let toastTimer;
+  function toast(msg, error=false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = error ? 'show error' : 'show';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>{el.className='';},3500);
+  }
+</script>
+</body>
+</html>
