@@ -6,7 +6,7 @@ from datetime import datetime
 app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
 
-DB = 'dengue.db'
+DB = '/tmp/dengue.db'
 
 # ── Banco de dados ────────────────────────────────────────────
 def get_db():
